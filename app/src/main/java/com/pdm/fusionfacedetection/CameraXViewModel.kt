@@ -9,7 +9,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import java.util.concurrent.ExecutionException
 
-class CameraXViewModel(application: Application): AndroidViewModel(application) {
+class CameraXViewModel(application: Application) : AndroidViewModel(application) {
 
     var cameraProviderLiveData: MutableLiveData<ProcessCameraProvider>? = null
 

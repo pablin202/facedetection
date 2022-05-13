@@ -63,7 +63,7 @@ class FaceDetectorProcessor(
         if (results.isNotEmpty()) {
             processFaceResults(results.first())
             for (face in results) {
-                //graphicOverlay.add(FaceGraphic(graphicOverlay, face))
+                // graphicOverlay.add(FaceGraphic(graphicOverlay, face))`
                 logExtrasForTesting(face)
             }
         }
@@ -219,9 +219,9 @@ class FaceDetectorProcessor(
                         Log.v(
                             MANUAL_TESTING_LOG,
                             "Position for face landmark: " +
-                                    landMarkTypesStrings[i] +
-                                    " is :" +
-                                    landmarkPositionStr
+                                landMarkTypesStrings[i] +
+                                " is :" +
+                                landmarkPositionStr
                         )
                     }
                 }
@@ -243,14 +243,5 @@ class FaceDetectorProcessor(
                 )
             }
         }
-    }
-
-    interface FaceResults {
-        fun faceVisibility(visible: Boolean)
-        fun neutralExpression(isNeutral: Boolean)
-        fun leftEyeStatus(isOpen: Boolean)
-        fun rightEyeStatus(isOpen: Boolean)
-        fun headPose(headPoseResult: HeadPoseResult)
-        fun requirementsMet(value: Boolean)
     }
 }

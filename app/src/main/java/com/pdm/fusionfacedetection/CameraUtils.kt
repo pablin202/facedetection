@@ -11,32 +11,37 @@ import androidx.camera.core.CameraSelector
 object CameraUtils {
 
     fun getCameraBackBestResolution(context: Context): Size? {
-        val cameraCharacteristics = getCameraCharacteristics(context, CameraSelector.LENS_FACING_BACK)
+        val cameraCharacteristics =
+            getCameraCharacteristics(context, CameraSelector.LENS_FACING_BACK)
         return cameraCharacteristics?.let {
             val map = it.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
             val outputSizes = map!!.getOutputSizes(
                 SurfaceTexture::class.java
             )
             outputSizes[0]
-        }?: run {
+        } ?: run {
             null
         }
     }
 
-    fun getCameraFrontBestResolution(context: Context) : Size? {
-        val cameraCharacteristics = getCameraCharacteristics(context, CameraSelector.LENS_FACING_FRONT)
+    fun getCameraFrontBestResolution(context: Context): Size? {
+        val cameraCharacteristics =
+            getCameraCharacteristics(context, CameraSelector.LENS_FACING_FRONT)
         return cameraCharacteristics?.let {
             val map = it.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
             val outputSizes = map!!.getOutputSizes(
                 SurfaceTexture::class.java
             )
             outputSizes[0]
-        }?: run {
+        } ?: run {
             null
         }
     }
 
-    private fun getCameraCharacteristics(context: Context, lensFacing: Int): CameraCharacteristics? {
+    private fun getCameraCharacteristics(
+        context: Context,
+        lensFacing: Int
+    ): CameraCharacteristics? {
         val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
         try {
             val cameraList = listOf(*cameraManager.cameraIdList)
@@ -51,6 +56,8 @@ object CameraUtils {
                 }
             }
         } catch (e: CameraAccessException) {
+            // Accessing camera ID info got error
+        } catch (e: Exception) {
             // Accessing camera ID info got error
         }
         return null
