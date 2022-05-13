@@ -8,33 +8,24 @@
 
     <androidx.camera.view.PreviewView
         android:id="@+id/preview_view"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintBottom_toTopOf="@id/control"
+        app:layout_constraintDimensionRatio="3:4"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" >
     </androidx.camera.view.PreviewView>
 
-    <com.pdm.fusionfacedetection.GraphicOverlay
-        android:id="@+id/graphic_overlay"
-        android:layout_width="0dp"
+    <androidx.appcompat.widget.AppCompatImageView
+        android:layout_width="wrap_content"
         android:layout_height="0dp"
+        android:src="@drawable/head_line_2"
         app:layout_constraintBottom_toBottomOf="@id/preview_view"
-        app:layout_constraintLeft_toLeftOf="@id/preview_view"
-        app:layout_constraintRight_toRightOf="@id/preview_view"
-        app:layout_constraintTop_toTopOf="@id/preview_view" />
+        app:layout_constraintEnd_toEndOf="@id/preview_view"
+        app:layout_constraintStart_toStartOf="@id/preview_view"
+        app:layout_constraintTop_toTopOf="@id/preview_view">
 
-    <ToggleButton
-        android:id="@+id/facing_switch"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:layout_marginEnd="10dp"
-        android:layout_marginTop="10dp"
-        android:background="@drawable/toggle_style"
-        android:checked="false"
-        android:textOff=""
-        android:textOn=""
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+    </androidx.appcompat.widget.AppCompatImageView>
 
     <TextView
         android:id="@+id/txt_face_no_detected"
@@ -51,9 +42,9 @@
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/control"
         android:layout_width="0dp"
-        android:layout_height="180dp"
+        android:layout_height="0dp"
         android:background="#000"
-        android:orientation="horizontal"
+        app:layout_constraintTop_toBottomOf="@id/preview_view"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintLeft_toLeftOf="parent"
@@ -166,17 +157,19 @@
 
         <androidx.constraintlayout.widget.Group
             android:id="@+id/images_group"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
             android:visibility="invisible"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
             app:constraint_referenced_ids="img_expression_status, img_head_status, img_left_eye_status, img_right_eye_status, img_move_to"
-            tools:layout_editor_absoluteX="159dp"
-            tools:layout_editor_absoluteY="41dp" />
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
         <ImageView
             android:id="@+id/img_take_picture"
             android:layout_width="0dp"
-            android:layout_height="48dp"
+            android:layout_height="56dp"
             android:layout_marginBottom="16dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"

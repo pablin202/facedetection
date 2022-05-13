@@ -12,7 +12,7 @@ import androidx.core.content.ContextCompat
 import com.pdm.fusionfacedetection.databinding.ActivityMainBinding
 import java.util.ArrayList
 
-class MainActivity : AppCompatActivity(), ActivityCompat.OnRequestPermissionsResultCallback  {
+class MainActivity : AppCompatActivity(), ActivityCompat.OnRequestPermissionsResultCallback {
 
     private lateinit var binding: ActivityMainBinding
 
@@ -33,7 +33,6 @@ class MainActivity : AppCompatActivity(), ActivityCompat.OnRequestPermissionsRes
 //            Log.v(TAG, CameraUtils.getCameraFrontBestResolution(this).toString())
         }
     }
-
 
     private fun allRuntimePermissionsGranted(): Boolean {
         for (permission in REQUIRED_RUNTIME_PERMISSIONS) {

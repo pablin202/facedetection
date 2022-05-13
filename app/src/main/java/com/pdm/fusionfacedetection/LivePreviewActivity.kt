@@ -16,15 +16,21 @@
 
 package com.pdm.fusionfacedetection
 
-import android.net.Uri
+import android.annotation.SuppressLint
+import android.content.ContentValues
+import android.os.Build
 import android.os.Bundle
-import androidx.appcompat.app.AppCompatActivity
+import android.provider.MediaStore
 import android.util.Log
-import android.util.Size
 import android.view.View
-import android.widget.CompoundButton
 import android.widget.Toast
-import androidx.camera.core.*
+import androidx.appcompat.app.AppCompatActivity
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageCapture
+import androidx.camera.core.ImageCaptureException
+import androidx.camera.core.ImageProxy
+import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
@@ -32,55 +38,41 @@ import com.google.android.gms.common.annotation.KeepName
 import com.google.mlkit.common.MlKitException
 import com.google.mlkit.vision.face.FaceDetectorOptions
 import com.pdm.fusionfacedetection.databinding.ActivityLivePreviewBinding
-import java.io.File
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Locale
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 /** Live preview demo for ML Kit APIs. */
 @KeepName
 class LivePreviewActivity :
-    AppCompatActivity(), CompoundButton.OnCheckedChangeListener, FaceDetectorProcessor.FaceResults {
-
-//    private var frontCameraResolution: Size? = null
-//    private var backCameraResolution: Size? = null
+    AppCompatActivity(), FaceResults {
 
     private var imageCapture: ImageCapture? = null
-    private lateinit var outputDirectory: File
     private lateinit var cameraExecutor: ExecutorService
     private var allRequirementsMet = false
     private var analysisUseCase: ImageAnalysis? = null
     private var cameraProvider: ProcessCameraProvider? = null
     private var previewUseCase: Preview? = null
-    private var lensFacing = CameraSelector.LENS_FACING_BACK
     private var cameraSelector: CameraSelector? = null
-    private var imageProcessor: VisionImageProcessor? = null
-    private var needUpdateGraphicOverlayImageSourceInfo = false
+    private var imageProcessor: FaceDetectorProcessorX? = null
 
     private lateinit var binding: ActivityLivePreviewBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d(TAG, "onCreate")
-        cameraSelector = CameraSelector.Builder().requireLensFacing(lensFacing).build()
+        cameraSelector = CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build()
 
         binding = ActivityLivePreviewBinding.inflate(layoutInflater)
         val view = binding.root
         setContentView(view)
-
-        binding.facingSwitch.setOnCheckedChangeListener(this)
 
         binding.imgTakePicture.setOnClickListener {
             if (allRequirementsMet) {
                 takePhoto()
             }
         }
-
-//        frontCameraResolution = CameraUtils.getCameraFrontBestResolution(this)
-//        backCameraResolution = CameraUtils.getCameraBackBestResolution(this)
-
-        outputDirectory = getOutputDirectory()
 
         cameraExecutor = Executors.newSingleThreadExecutor()
 
@@ -93,43 +85,6 @@ class LivePreviewActivity :
                 cameraProvider = provider
                 bindAllCameraUseCases()
             }
-    }
-
-    private fun getOutputDirectory(): File {
-        val mediaDir = externalMediaDirs.firstOrNull()?.let {
-            File(it, resources.getString(R.string.app_name)).apply { mkdirs() }
-        }
-        return if (mediaDir != null && mediaDir.exists())
-            mediaDir else filesDir
-    }
-
-    override fun onCheckedChanged(buttonView: CompoundButton, isChecked: Boolean) {
-        if (cameraProvider == null) {
-            return
-        }
-        val newLensFacing =
-            if (lensFacing == CameraSelector.LENS_FACING_FRONT) {
-                CameraSelector.LENS_FACING_BACK
-            } else {
-                CameraSelector.LENS_FACING_FRONT
-            }
-        val newCameraSelector = CameraSelector.Builder().requireLensFacing(newLensFacing).build()
-        try {
-            if (cameraProvider!!.hasCamera(newCameraSelector)) {
-                Log.d(TAG, "Set facing to $newLensFacing")
-                lensFacing = newLensFacing
-                cameraSelector = newCameraSelector
-                bindAllCameraUseCases()
-                return
-            }
-        } catch (e: CameraInfoUnavailableException) {
-            // Falls through
-        }
-        Toast.makeText(
-            applicationContext,
-            "This device does not have lens with facing: $newLensFacing",
-            Toast.LENGTH_SHORT
-        ).show()
     }
 
     public override fun onResume() {
@@ -152,16 +107,25 @@ class LivePreviewActivity :
         // Get a stable reference of the modifiable image capture use case
         val imageCapture = imageCapture ?: return
 
-        // Create time-stamped output file to hold the image
-        val photoFile = File(
-            outputDirectory,
-            SimpleDateFormat(
-                FILENAME_FORMAT, Locale.US
-            ).format(System.currentTimeMillis()) + ".jpg"
-        )
+        val name = SimpleDateFormat(FILENAME_FORMAT, Locale.US)
+            .format(System.currentTimeMillis())
+
+        val contentValues = ContentValues().apply {
+            put(MediaStore.MediaColumns.DISPLAY_NAME, name)
+            put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
+            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
+                put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/Face-Detection")
+            }
+        }
 
         // Create output options object which contains file + metadata
-        val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
+        val outputOptions = ImageCapture.OutputFileOptions
+            .Builder(
+                contentResolver,
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                contentValues
+            )
+            .build()
 
         // Set up image capture listener, which is triggered after photo has
         // been taken
@@ -174,12 +138,12 @@ class LivePreviewActivity :
                 }
 
                 override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                    val savedUri = Uri.fromFile(photoFile)
-                    val msg = "Photo capture succeeded: $savedUri"
+                    val msg = "Photo capture succeeded: ${output.savedUri}"
                     Toast.makeText(baseContext, msg, Toast.LENGTH_SHORT).show()
                     Log.d(TAG, msg)
                 }
-            })
+            }
+        )
     }
 
     private fun bindAllCameraUseCases() {
@@ -199,11 +163,6 @@ class LivePreviewActivity :
             cameraProvider!!.unbind(previewUseCase)
         }
 
-        //val builder = Preview.Builder()
-//        val targetResolution = if (lensFacing == CameraSelector.LENS_FACING_BACK) backCameraResolution else frontCameraResolution
-//        if (targetResolution != null) {
-//            builder.setTargetResolution(targetResolution)
-//        }
         previewUseCase = Preview.Builder().build().also {
             it.setSurfaceProvider(binding.previewView.surfaceProvider)
         }
@@ -215,6 +174,7 @@ class LivePreviewActivity :
         cameraProvider!!.bindToLifecycle(/* lifecycleOwner= */ this, cameraSelector!!, previewUseCase, imageCapture)
     }
 
+    @SuppressLint("UnsafeOptInUsageError")
     private fun bindAnalysisUseCase() {
         if (cameraProvider == null) {
             return
@@ -230,46 +190,21 @@ class LivePreviewActivity :
             .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
             .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_NONE)
             .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
-            .setMinFaceSize(0.15f)
+            .setMinFaceSize(MIN_FACE_SIZE)
             .enableTracking()
             .build()
 
-        imageProcessor = FaceDetectorProcessor(this, faceDetectorOptions, this)
+        imageProcessor = FaceDetectorProcessorX(faceDetectorOptions, this)
 
-//        val builder = ImageAnalysis.Builder()
-//        val targetResolution = if (lensFacing == CameraSelector.LENS_FACING_BACK) backCameraResolution else frontCameraResolution
-//        if (targetResolution != null) {
-//            builder.setTargetResolution(targetResolution)
-//        }
         analysisUseCase = ImageAnalysis.Builder().build()
-
-        needUpdateGraphicOverlayImageSourceInfo = true
 
         analysisUseCase?.setAnalyzer(
             // imageProcessor.processImageProxy will use another thread to run the detection underneath,
             // thus we can just runs the analyzer itself on main thread. cameraExecutor
             ContextCompat.getMainExecutor(this)
         ) { imageProxy: ImageProxy ->
-            if (needUpdateGraphicOverlayImageSourceInfo) {
-                val isImageFlipped = lensFacing == CameraSelector.LENS_FACING_FRONT
-                val rotationDegrees = imageProxy.imageInfo.rotationDegrees
-                if (rotationDegrees == 0 || rotationDegrees == 180) {
-                    binding.graphicOverlay.setImageSourceInfo(
-                        imageProxy.width,
-                        imageProxy.height,
-                        isImageFlipped
-                    )
-                } else {
-                    binding.graphicOverlay.setImageSourceInfo(
-                        imageProxy.height,
-                        imageProxy.width,
-                        isImageFlipped
-                    )
-                }
-                needUpdateGraphicOverlayImageSourceInfo = false
-            }
             try {
-                imageProcessor!!.processImageProxy(imageProxy, binding.graphicOverlay)
+                imageProcessor!!.processImageProxy(imageProxy)
             } catch (e: MlKitException) {
                 Log.e(TAG, "Failed to process image. Error: " + e.localizedMessage)
                 Toast.makeText(applicationContext, e.localizedMessage, Toast.LENGTH_SHORT).show()
@@ -332,5 +267,6 @@ class LivePreviewActivity :
     companion object {
         private const val TAG = "LivePreviewActivity"
         const val FILENAME_FORMAT = "yyyy-MM-dd-HH-mm-ss-SSS"
+        private const val MIN_FACE_SIZE = 0.15f
     }
 }
